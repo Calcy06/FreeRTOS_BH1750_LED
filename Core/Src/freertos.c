@@ -104,7 +104,7 @@ void Task_led(void *argument)
         {
             printf("QueueGet failed\r\n");
         }
-        osDelay(pdMS_TO_TICKS(500));
+        osDelay(pdMS_TO_TICKS(200));
     }
 }
 /* USER CODE END PD */
