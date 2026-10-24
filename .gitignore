@@ -1,0 +1,24 @@
+# ===== Keil MDK 编译产物（可随时重新生成，不入库） =====
+MDK-ARM/FreeRTOS/*
+!MDK-ARM/FreeRTOS/FreeRTOS.sct
+*.dep
+*.lnp
+*.crf
+*.d
+*.o
+*.axf
+*.map
+*.htm
+*.build_log.htm
+*.hex
+
+# ===== Keil 界面布局与日志（纯本地状态） =====
+*.uvguix.*
+*.log
+*.log.lock
+JLinkLog/
+*.scvd
+
+# ===== 其他常见临时文件 =====
+*.bak
+Thumbs.db
