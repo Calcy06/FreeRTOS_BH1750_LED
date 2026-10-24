@@ -43,6 +43,9 @@ osTimerId_t TimerBH1750Handle;
 osThreadId_t taskBH1750Handle;
 osThreadId_t taskLedHandle;
 
+// 队列句柄
+osMessageQueueId_t lx_handle;
+
 // // BH1750软件定时器回调函数
 // void TimerBH1750Callback(void *argument)
 // {
@@ -56,32 +59,50 @@ void Task_bh1750(void *argument)
     TickType_t xLastWake = xTaskGetTickCount();    // 记录当前时刻
     const TickType_t xPeriod = pdMS_TO_TICKS(500); // 周期500ms
 
+    uint16_t lx = 0;
+
     while (1)
     {
-        vTaskDelayUntil(&xLastWake, xPeriod); /* 精确 500ms 周期 */
+        vTaskDelayUntil(&xLastWake, xPeriod); // 精确 500ms 周期
         BH1750_get_lumen(dev);
+        if (osMessageQueuePut(lx_handle, &(dev->value), NULL, NULL) != osOK)
+        {
+            printf("QueuePut Failed\r\n");
+        }
     }
 }
 
 // 任务2
 void Task_led(void *argument)
 {
-    bh1750_dev_t *dev = (bh1750_dev_t *)argument;
+    // bh1750_dev_t *dev = (bh1750_dev_t *)argument;
+    uint16_t lx;
+    uint16_t ret;
 
     while (1)
     {
-        printf("lumen:%d\r\n", dev->value);
-        if (dev->value < 3)
+
+        // printf("lumen:%d\r\n", dev->value);
+        ret = osMessageQueueGet(lx_handle, &lx, NULL, osWaitForever);
+        if (ret == osOK)
         {
-            HAL_GPIO_WritePin(GREEN_GPIO_Port, GREEN_Pin, GPIO_PIN_SET);
-            HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_SET);
-            HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_SET);
+            printf("lumen:%u\r\n", lx);
+            if (lx < 3)
+            {
+                HAL_GPIO_WritePin(GREEN_GPIO_Port, GREEN_Pin, GPIO_PIN_SET);
+                HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_SET);
+                HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_SET);
+            }
+            else
+            {
+                HAL_GPIO_WritePin(GREEN_GPIO_Port, GREEN_Pin, GPIO_PIN_RESET);
+                HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_RESET);
+                HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_RESET);
+            }
         }
         else
         {
-            HAL_GPIO_WritePin(GREEN_GPIO_Port, GREEN_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(RED_GPIO_Port, RED_Pin, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(YELLOW_GPIO_Port, YELLOW_Pin, GPIO_PIN_RESET);
+            printf("QueueGet failed\r\n");
         }
         osDelay(pdMS_TO_TICKS(500));
     }
@@ -139,6 +160,8 @@ void MX_FREERTOS_Init(void)
 
     /* USER CODE BEGIN RTOS_QUEUES */
     /* add queues, ... */
+    lx_handle = osMessageQueueNew(4, sizeof(uint16_t), NULL);
+    configASSERT(lx_handle != NULL);
     /* USER CODE END RTOS_QUEUES */
 
     /* Create the thread(s) */
